@@ -54,6 +54,27 @@ int main()
         sendStyle(res, filename);
     });
 
+    CROW_ROUTE(app, "/db_test")
+    ([]() {
+        try
+        {
+            std::string conn_string = get_postgres_conn_string();
+            pqxx::connection c(conn_string);
+
+            pqxx::work txn(c);
+
+            std::string pg_version = txn.query_value<std::string>("SELECT version()");
+
+            txn.commit();
+
+            return crow::response(200, "Conectado com sucesso! Versao do PostgreSQL: " + pg_version);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Erro de banco de dados: " << e.what() << std::endl;
+            return crow::response(500, "Erro ao conectar ou consultar o banco de dados.");
+        }
+    });
     char* _port = std::getenv("PORT");
     uint16_t PORT = static_cast<uint16_t>(_port != NULL ? std::stoi(_port) : 18080);
     app.port(PORT).multithreaded().run();
